@@ -1,0 +1,22 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Phase 2 Package Manifest",
+  "type": "object",
+  "required": ["package_id", "clips"],
+  "properties": {
+    "package_id": {"type": "string", "minLength": 1},
+    "clips": {
+      "type": "array",
+      "items": {
+        "oneOf": [
+          {"type": "string", "minLength": 1},
+          {
+            "type": "object",
+            "required": ["clip_id"],
+            "properties": {"clip_id": {"type": "string", "minLength": 1}}
+          }
+        ]
+      }
+    }
+  }
+}

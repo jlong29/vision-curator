@@ -1,0 +1,18 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Dataset Release Manifest",
+  "type": "object",
+  "required": [
+    "release_id",
+    "source_package_ids",
+    "annotation_versions",
+    "split_policy",
+    "label_policy",
+    "class_list",
+    "counts_by_split",
+    "counts_by_label_source",
+    "created_at",
+    "creator",
+    "tool_version"
+  ]
+}

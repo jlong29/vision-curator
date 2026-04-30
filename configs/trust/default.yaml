@@ -1,0 +1,2 @@
+class_trust_threshold: 0.75
+box_trust_threshold: 0.70

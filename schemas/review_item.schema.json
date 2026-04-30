@@ -1,0 +1,6 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Review Item",
+  "type": "object",
+  "required": ["review_id", "queue_id", "queue_kind", "package_id", "clip_id", "track_id", "decision_bucket", "reason", "priority"]
+}
