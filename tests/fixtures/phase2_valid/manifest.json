@@ -1,6 +1,17 @@
 {
   "package_id": "fixture_phase2_001",
+  "run_id": "fixture_run_001",
+  "source_node_id": "fixture_nx_001",
+  "runtime": {
+    "backend": "fixture-runtime",
+    "model_id": "thermal-person-fixture"
+  },
+  "tracker": {
+    "name": "fixture-tracker",
+    "version": "1.0"
+  },
+  "completion_state": "complete",
   "clips": [
-    {"clip_id": "clip_001"}
+    {"clip_id": "clip_001", "run_id": "fixture_run_001"}
   ]
 }

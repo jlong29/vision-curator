@@ -162,7 +162,7 @@ At the end of Phase 1:
 - Ensure `.agent/TASK_BRIEF.md` is up to date.
 
 Notes:
-  - A template for `.agent/TASK_BRIEF.md` is already available and it is copied from `docs/codex/TASK_BRIEF_TEMPLATE.md`
+  - A template for `.agent/TASK_BRIEF.md` is already available and it is copied from `docs/agent/TASK_BRIEF_TEMPLATE.md`
 
 ### Phase 2 — Implement + Learn (write + verify, no git history operations)
 Goal: Execute the plan developed in Phase 1 and memorialized in `.agent/TASK_BRIEF.md`
@@ -211,12 +211,12 @@ When the task is complete (as defined in `.agent/TASK_BRIEF.md`), the agent shou
 ### Cleanup at task closeout
 At completion:
 1. Summarize “gotchas / decisions / commands / TODOs” and promote them to durable docs (see `Task completion / closeout procedure`).
-2. Create a folder `docs/codex/tasks/<task_slug>` under `docs/codex/tasks`
+2. Create a folder `docs/agent/tasks/<task_slug>` under `docs/agent/tasks`
   - e.g. <task_slug> = YYYYMMDD_HHMM_<short_topic>
-3. Move `.agent/TASK_BRIEF.md` to `docs/codex/tasks/<task_slug>/`
-4. Move `.agent/MEMORY.md`to `docs/codex/tasks/<task_slug>/`
+3. Move `.agent/TASK_BRIEF.md` to `docs/agent/tasks/<task_slug>/`
+4. Move `.agent/MEMORY.md`to `docs/agent/tasks/<task_slug>/`
 5. Empty `.agent/logs/` (or delete the directory contents)
-6. Write the closeout into `docs/codex/tasks/<task_slug>/CLOSEOUT.md`
+6. Write the closeout into `docs/agent/tasks/<task_slug>/CLOSEOUT.md`
 7. Verify: `.agent/TASK_BRIEF.md` and `.agent/MEMORY.md` exist (templates), `.agent/logs/` empty, and archive folder contains `TASK_BRIEF.md`, `MEMORY.md`, and `CLOSEOUT.md`
 
 ---
@@ -255,7 +255,7 @@ Maintain **≤ 200 lines** when possible. Use bullets. Suggested headings:
 - **Verification run** (commands + outcomes)
 
 Notes:
-  - A template for `.agent/MEMORY.md` is already available and it is copied from `docs/codex/MEMORY_TEMPLATE.md`
+  - A template for `.agent/MEMORY.md` is already available and it is copied from `docs/agent/MEMORY_TEMPLATE.md`
 
 ### Log naming convention
 Store logs as:

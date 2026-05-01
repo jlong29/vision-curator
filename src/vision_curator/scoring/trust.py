@@ -34,8 +34,14 @@ def score_rows(
     rows: list[dict[str, Any]],
     frame_width: int = 640,
     frame_height: int = 512,
+    frame_count: int = 0,
+    source_path: str = "",
+    clip_path: str = "",
+    run_id: str = "",
+    provenance: dict[str, Any] | None = None,
 ) -> list[TrackScore]:
     grouped: dict[str, list[dict[str, Any]]] = defaultdict(list)
+    provenance = provenance or {}
     for row in rows:
         grouped[str(row.get("track_id", "unknown"))].append(row)
     if not grouped:
@@ -44,19 +50,39 @@ def score_rows(
                 package_id=package_id,
                 clip_id=clip_id,
                 track_id="no_detection",
+                source_path=source_path,
+                clip_path=clip_path,
+                run_id=run_id,
                 class_trust=0.0,
                 box_trust=1.0,
                 duration_frames=0,
+                frame_count=frame_count,
+                detection_count=0,
+                detection_density=0.0,
                 mean_conf=0.0,
                 min_conf=0.0,
                 bbox_jitter=0.0,
+                area_change=0.0,
                 edge_fraction=0.0,
                 decision_bucket="candidate_negative",
                 review_priority=0.2,
+                provenance=provenance,
             )
         ]
     return [
-        _score_track(package_id, clip_id, track_id, track_rows, frame_width, frame_height)
+        _score_track(
+            package_id,
+            clip_id,
+            track_id,
+            track_rows,
+            frame_width,
+            frame_height,
+            frame_count,
+            source_path,
+            clip_path,
+            run_id,
+            provenance,
+        )
         for track_id, track_rows in sorted(grouped.items())
     ]
 
@@ -65,10 +91,22 @@ def _score_clip(package_id: str, clip: dict[str, Any]) -> list[TrackScore]:
     clip_manifest = read_json(clip["manifest_path"])
     frame_width = int(clip_manifest.get("frame_width", clip_manifest.get("width", 640)))
     frame_height = int(clip_manifest.get("frame_height", clip_manifest.get("height", 512)))
+    frame_count = int(clip_manifest.get("frame_count", 0))
     rows = _read_rows(clip["detections_path"])
     if not rows:
         rows = _read_rows(clip["tracks_path"])
-    return score_rows(package_id, clip["clip_id"], rows, frame_width, frame_height)
+    return score_rows(
+        package_id,
+        clip["clip_id"],
+        rows,
+        frame_width,
+        frame_height,
+        frame_count,
+        clip["source_path"],
+        clip["clip_path"],
+        clip.get("run_id", ""),
+        clip.get("provenance", {}),
+    )
 
 
 def _score_track(
@@ -78,18 +116,27 @@ def _score_track(
     rows: list[dict[str, Any]],
     frame_width: int,
     frame_height: int,
+    frame_count: int,
+    source_path: str,
+    clip_path: str,
+    run_id: str,
+    provenance: dict[str, Any],
 ) -> TrackScore:
     ordered = sorted(rows, key=lambda row: int(float(row.get("frame_index", row.get("frame", 0)))))
     confidences = [_float(row.get("confidence", row.get("conf", row.get("score", 0.0)))) for row in ordered]
     boxes = [_box(row) for row in ordered]
     duration_frames = len({int(float(row.get("frame_index", row.get("frame", index)))) for index, row in enumerate(ordered)})
+    detection_count = len(ordered)
+    density_denominator = frame_count if frame_count > 0 else max(duration_frames, 1)
+    detection_density = _clamp(detection_count / density_denominator)
 
     mean_conf = mean(confidences) if confidences else 0.0
     min_conf = min(confidences) if confidences else 0.0
     bbox_jitter = _bbox_jitter(boxes, frame_width, frame_height)
+    area_change = _area_change(boxes)
     edge_fraction = _edge_fraction(boxes, frame_width, frame_height)
-    class_trust = _clamp(0.7 * mean_conf + 0.3 * min_conf + min(duration_frames, 30) / 300)
-    box_trust = _clamp(1.0 - bbox_jitter * 2.0 - edge_fraction * 0.4)
+    class_trust = _clamp(0.65 * mean_conf + 0.25 * min_conf + 0.10 * detection_density + min(duration_frames, 30) / 300)
+    box_trust = _clamp(1.0 - bbox_jitter * 1.5 - area_change * 0.4 - edge_fraction * 0.4)
     decision_bucket = _bucket(class_trust, box_trust, duration_frames)
     review_priority = round(_review_priority(class_trust, box_trust, edge_fraction, decision_bucket), 6)
 
@@ -97,15 +144,23 @@ def _score_track(
         package_id=package_id,
         clip_id=clip_id,
         track_id=track_id,
+        source_path=source_path,
+        clip_path=clip_path,
+        run_id=run_id,
         class_trust=round(class_trust, 6),
         box_trust=round(box_trust, 6),
         duration_frames=duration_frames,
+        frame_count=frame_count,
+        detection_count=detection_count,
+        detection_density=round(detection_density, 6),
         mean_conf=round(mean_conf, 6),
         min_conf=round(min_conf, 6),
         bbox_jitter=round(bbox_jitter, 6),
+        area_change=round(area_change, 6),
         edge_fraction=round(edge_fraction, 6),
         decision_bucket=decision_bucket,
         review_priority=review_priority,
+        provenance=provenance,
     )
 
 
@@ -157,6 +212,17 @@ def _bbox_jitter(boxes: list[tuple[float, float, float, float]], frame_width: in
         cur_area = max(cw * ch, 1.0)
         area_delta = abs(cur_area - prev_area) / max(prev_area, cur_area)
         values.append(center_delta + area_delta)
+    return _clamp(mean(values))
+
+
+def _area_change(boxes: list[tuple[float, float, float, float]]) -> float:
+    if len(boxes) < 2:
+        return 0.0
+    values: list[float] = []
+    for previous, current in zip(boxes, boxes[1:]):
+        prev_area = max(previous[2] * previous[3], 1.0)
+        cur_area = max(current[2] * current[3], 1.0)
+        values.append(abs(cur_area - prev_area) / max(prev_area, cur_area))
     return _clamp(mean(values))
 
 

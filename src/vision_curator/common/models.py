@@ -8,10 +8,13 @@ from typing import Any
 class ClipRecord:
     package_id: str
     clip_id: str
+    source_path: str
     clip_path: str
     manifest_path: str
     detections_path: str
     tracks_path: str
+    run_id: str = ""
+    provenance: dict[str, Any] = field(default_factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
         return asdict(self)
@@ -25,6 +28,8 @@ class PackageRecord:
     ingested_at: str
     clip_count: int
     clip_ids: list[str]
+    run_id: str = ""
+    provenance: dict[str, Any] = field(default_factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
         return asdict(self)
@@ -35,15 +40,23 @@ class TrackScore:
     package_id: str
     clip_id: str
     track_id: str
+    source_path: str
+    clip_path: str
+    run_id: str
     class_trust: float
     box_trust: float
     duration_frames: int
+    frame_count: int
+    detection_count: int
+    detection_density: float
     mean_conf: float
     min_conf: float
     bbox_jitter: float
+    area_change: float
     edge_fraction: float
     decision_bucket: str
     review_priority: float
+    provenance: dict[str, Any] = field(default_factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
         return asdict(self)
@@ -57,9 +70,13 @@ class ReviewItem:
     package_id: str
     clip_id: str
     track_id: str
+    source_path: str
+    clip_path: str
+    run_id: str
     decision_bucket: str
     reason: str
     priority: float
+    provenance: dict[str, Any] = field(default_factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
         return asdict(self)
@@ -69,7 +86,9 @@ class ReviewItem:
 class DatasetReleaseManifest:
     release_id: str
     source_package_ids: list[str]
+    source_packages: list[dict[str, Any]]
     annotation_versions: list[str]
+    annotation_status: str
     split_policy: str
     label_policy: str
     class_list: list[str]

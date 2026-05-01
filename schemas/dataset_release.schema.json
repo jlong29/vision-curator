@@ -5,7 +5,9 @@
   "required": [
     "release_id",
     "source_package_ids",
+    "source_packages",
     "annotation_versions",
+    "annotation_status",
     "split_policy",
     "label_policy",
     "class_list",

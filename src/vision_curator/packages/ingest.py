@@ -20,6 +20,8 @@ def ingest_package(source: str | Path, store_root: str | Path) -> PackageRecord:
         ingested_at=datetime.now(timezone.utc).isoformat(),
         clip_count=len(validation["clips"]),
         clip_ids=[clip["clip_id"] for clip in validation["clips"]],
+        run_id=validation["run_id"],
+        provenance=validation["provenance"],
     )
 
     index_path = packages_index_path(store_root)
