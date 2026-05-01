@@ -21,3 +21,11 @@ def track_scores_path(store_root: str | Path, package_id: str) -> Path:
 
 def review_queues_dir(store_root: str | Path) -> Path:
     return Path(store_root) / "review_queues"
+
+
+def cvat_exports_dir(store_root: str | Path) -> Path:
+    return Path(store_root) / "annotation_exports" / "cvat"
+
+
+def cvat_imports_dir(store_root: str | Path) -> Path:
+    return Path(store_root) / "annotation_imports" / "cvat"

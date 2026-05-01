@@ -21,6 +21,10 @@ class IngestTests(unittest.TestCase):
             self.assertEqual(len(rows), 1)
             self.assertEqual(rows[0]["package_id"], "fixture_phase2_001")
             self.assertEqual(rows[0]["clip_count"], 1)
+            self.assertEqual(rows[0]["clip_ids"], ["clip_001"])
+            self.assertEqual(rows[0]["run_id"], "fixture_run_001")
+            self.assertEqual(rows[0]["provenance"]["completion_state"], "complete")
+            self.assertEqual(rows[0]["provenance"]["runtime"]["model_id"], "thermal-person-fixture")
 
 
 if __name__ == "__main__":

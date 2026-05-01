@@ -4,6 +4,8 @@ import argparse
 import json
 from pathlib import Path
 
+from vision_curator.annotation.cvat_export import export_cvat_task
+from vision_curator.annotation.cvat_import import import_cvat_annotations
 from vision_curator.packages.ingest import ingest_package
 from vision_curator.packages.validate import validate_phase2_package
 from vision_curator.releases.build import build_release
@@ -40,6 +42,17 @@ def build_parser() -> argparse.ArgumentParser:
     release_parser.add_argument("--release-id", required=True)
     release_parser.set_defaults(func=_build_release)
 
+    cvat_export_parser = subparsers.add_parser("export-cvat-task")
+    cvat_export_parser.add_argument("--queue", required=True)
+    cvat_export_parser.add_argument("--store-root", required=True)
+    cvat_export_parser.add_argument("--task-id")
+    cvat_export_parser.set_defaults(func=_export_cvat_task)
+
+    cvat_import_parser = subparsers.add_parser("import-cvat-annotations")
+    cvat_import_parser.add_argument("--task-root", required=True)
+    cvat_import_parser.add_argument("--store-root", required=True)
+    cvat_import_parser.set_defaults(func=_import_cvat_annotations)
+
     return parser
 
 
@@ -74,6 +87,16 @@ def _build_review_queue(args: argparse.Namespace) -> None:
 def _build_release(args: argparse.Namespace) -> None:
     release_root = build_release(args.config, args.release_id)
     print(json.dumps({"release_id": args.release_id, "release_root": str(release_root)}, sort_keys=True))
+
+
+def _export_cvat_task(args: argparse.Namespace) -> None:
+    task_root = export_cvat_task(args.queue, args.store_root, args.task_id)
+    print(json.dumps({"task_root": str(task_root)}, sort_keys=True))
+
+
+def _import_cvat_annotations(args: argparse.Namespace) -> None:
+    import_root = import_cvat_annotations(args.task_root, args.store_root)
+    print(json.dumps({"import_root": str(import_root)}, sort_keys=True))
 
 
 if __name__ == "__main__":

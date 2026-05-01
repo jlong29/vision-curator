@@ -17,7 +17,7 @@ def build_review_queue(queue_kind: str, store_root: str | Path, limit: int | Non
         raise ValueError(f"Unsupported queue kind {queue_kind!r}; expected one of {sorted(QUEUE_KINDS)}")
     scores = _load_scores(store_root)
     selected = list(_select_scores(queue_kind, scores))
-    selected.sort(key=lambda row: (-float(row.get("review_priority", 0.0)), row.get("package_id", ""), row.get("clip_id", ""), row.get("track_id", "")))
+    selected.sort(key=lambda row: _sort_key(queue_kind, row))
     if limit is not None:
         selected = selected[:limit]
 
@@ -31,9 +31,13 @@ def build_review_queue(queue_kind: str, store_root: str | Path, limit: int | Non
             package_id=str(row.get("package_id", "")),
             clip_id=str(row.get("clip_id", "")),
             track_id=str(row.get("track_id", "")),
+            source_path=str(row.get("source_path", "")),
+            clip_path=str(row.get("clip_path", "")),
+            run_id=str(row.get("run_id", "")),
             decision_bucket=str(row.get("decision_bucket", "")),
             reason=_reason(queue_kind, row),
             priority=round(float(row.get("review_priority", 0.0)), 6),
+            provenance=row.get("provenance", {}) if isinstance(row.get("provenance"), dict) else {},
         )
         for index, row in enumerate(selected, start=1)
     ]
@@ -59,14 +63,50 @@ def _select_scores(queue_kind: str, scores: list[dict]) -> Iterable[dict]:
     if queue_kind == "candidate-negative":
         return (row for row in scores if row.get("decision_bucket") == "candidate_negative")
     if queue_kind == "random-audit":
-        return (row for index, row in enumerate(scores) if index % 10 == 0)
+        eligible = sorted(
+            (row for row in scores if row.get("decision_bucket") in {"trusted_full", "discard"}),
+            key=_identity_key,
+        )
+        return (row for index, row in enumerate(eligible) if index % 10 == 0)
     return (
         row
         for row in scores
-        if row.get("decision_bucket") in {"ambiguous", "trusted_class_weak_box"}
+        if row.get("decision_bucket") == "trusted_class_weak_box"
+        or (
+            row.get("decision_bucket") == "ambiguous"
+            and (
+                float(row.get("class_trust", 0.0)) >= 0.40
+                or float(row.get("edge_fraction", 0.0)) > 0.0
+                or float(row.get("bbox_jitter", 0.0)) >= 0.15
+            )
+        )
         or float(row.get("edge_fraction", 0.0)) > 0.0
         or float(row.get("bbox_jitter", 0.0)) >= 0.15
     )
+
+
+def _sort_key(queue_kind: str, row: dict) -> tuple:
+    if queue_kind == "hard-case":
+        return (
+            -float(row.get("class_trust", 0.0)),
+            float(row.get("box_trust", 1.0)),
+            -float(row.get("edge_fraction", 0.0)),
+            -float(row.get("bbox_jitter", 0.0)),
+            _identity_key(row),
+        )
+    if queue_kind == "ambiguous":
+        return (
+            -float(row.get("review_priority", 0.0)),
+            abs(float(row.get("class_trust", 0.0)) - 0.5),
+            _identity_key(row),
+        )
+    if queue_kind == "candidate-negative":
+        return (-float(row.get("review_priority", 0.0)), _identity_key(row))
+    return _identity_key(row)
+
+
+def _identity_key(row: dict) -> tuple[str, str, str]:
+    return (str(row.get("package_id", "")), str(row.get("clip_id", "")), str(row.get("track_id", "")))
 
 
 def _reason(queue_kind: str, row: dict) -> str:
