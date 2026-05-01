@@ -142,15 +142,15 @@ Requires Dr. Long / CVAT:
 Minimum:
 ```bash
 python3 -m unittest
-python3 -m vision_curator.cli validate-package --phase2 tests/fixtures/phase2_valid
-python3 -m vision_curator.cli ingest-package --source tests/fixtures/phase2_valid --store-root /tmp/vision-curator-smoke-store
-python3 -m vision_curator.cli score-package --package-id fixture_phase2_001 --store-root /tmp/vision-curator-smoke-store
-python3 -m vision_curator.cli build-review-queue --queue-kind hard-case --store-root /tmp/vision-curator-smoke-store
+PYTHONPATH=src python3 -m vision_curator.cli validate-package --phase2 tests/fixtures/phase2_valid
+PYTHONPATH=src python3 -m vision_curator.cli ingest-package --source tests/fixtures/phase2_valid --store-root /tmp/vision-curator-smoke-store
+PYTHONPATH=src python3 -m vision_curator.cli score-package --package-id fixture_phase2_001 --store-root /tmp/vision-curator-smoke-store
+PYTHONPATH=src python3 -m vision_curator.cli build-review-queue --queue-kind hard-case --store-root /tmp/vision-curator-smoke-store
 ```
 
 If you add release validation/build:
 ```bash
-python3 -m vision_curator.cli build-release --config configs/release/default.yaml --release-id smoke_release_20260430
+PYTHONPATH=src python3 -m vision_curator.cli build-release --config configs/release/default.yaml --release-id smoke_release_20260430
 ```
 
 ## Definition of done for this wave
