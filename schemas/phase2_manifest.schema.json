@@ -5,6 +5,20 @@
   "required": ["package_id", "clips"],
   "properties": {
     "package_id": {"type": "string", "minLength": 1},
+    "dataset_source": {"type": "string", "minLength": 1},
+    "activity": {"type": "string", "minLength": 1},
+    "package_type": {"type": "string", "minLength": 1},
+    "producer_repo": {"type": "string", "minLength": 1},
+    "vision_api_job_id": {"type": "string"},
+    "model_profile": {"type": "string", "minLength": 1},
+    "model_artifact_version": {"type": "string", "minLength": 1},
+    "detector_backend": {"type": "string", "minLength": 1},
+    "tracker_backend": {"type": "string", "minLength": 1},
+    "tracker_config_hash": {"type": "string", "minLength": 1},
+    "frame_stride": {"type": "integer", "minimum": 1},
+    "detection_confidence_threshold": {"type": "number", "minimum": 0},
+    "nms_threshold": {"type": "number", "minimum": 0},
+    "clip_count": {"type": "integer", "minimum": 0},
     "clips": {
       "type": "array",
       "items": {
@@ -14,9 +28,37 @@
             "type": "object",
             "required": ["clip_id"],
             "properties": {"clip_id": {"type": "string", "minLength": 1}}
+          },
+          {
+            "type": "object",
+            "required": ["package_clip_id"],
+            "properties": {"package_clip_id": {"type": "string", "minLength": 1}}
           }
         ]
       }
     }
-  }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {"dataset_source": {"const": "egohumans"}},
+        "required": ["dataset_source"]
+      },
+      "then": {
+        "required": [
+          "activity",
+          "package_type",
+          "producer_repo",
+          "model_profile",
+          "model_artifact_version",
+          "detector_backend",
+          "tracker_backend",
+          "tracker_config_hash",
+          "frame_stride",
+          "detection_confidence_threshold",
+          "nms_threshold"
+        ]
+      }
+    }
+  ]
 }
