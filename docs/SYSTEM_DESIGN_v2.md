@@ -309,24 +309,110 @@ Trust scoring and queue selection must use teacher pseudo labels and edge proven
 
 Repos should communicate through immutable stores and manifests, not private ad hoc paths.
 
-Recommended desktop roots:
+Recommended desktop base root on this workstation:
 
 ```text
-/data/openclaw/raw_edge_packages/
-/data/openclaw/curator/
-/data/openclaw/dataset_releases/
-/data/openclaw/training_runs/
-/data/openclaw/model_artifacts/
+/media/jdl2/DATAPART/YOLO-Data/openclaw/
+```
+
+Use an `openclaw/` namespace under the broader YOLO data mount so Codex, `vision-curator`, and `vision-trainer` can be granted a narrow writable root without exposing unrelated datasets.
+
+Recommended desktop layout:
+
+```text
+/media/jdl2/DATAPART/YOLO-Data/openclaw/
+├─ raw_edge_packages/
+│  ├─ incoming/
+│  ├─ phase1/
+│  ├─ phase2/
+│  │  └─ egohumans/
+│  └─ manifests/
+├─ curator/
+│  ├─ indexes/
+│  ├─ scores/
+│  ├─ review_queues/
+│  ├─ annotation_exports/
+│  │  └─ cvat/
+│  ├─ annotation_imports/
+│  │  └─ cvat/
+│  ├─ oracle/
+│  │  └─ egohumans/
+│  ├─ revealed_gold/
+│  └─ decisions/
+├─ dataset_releases/
+│  ├─ pseudo_only/
+│  ├─ calibration/
+│  └─ published/
+├─ training_runs/
+│  ├─ smoke/
+│  ├─ calibration/
+│  └─ full/
+├─ model_artifacts/
+│  ├─ candidates/
+│  ├─ exported/
+│  ├─ promotion_reports/
+│  └─ archived/
+└─ docs/
 ```
 
 Recommended environment variables:
 
 ```bash
-OPENCLAW_RAW_PACKAGE_STORE=/data/openclaw/raw_edge_packages
-OPENCLAW_CURATOR_STORE=/data/openclaw/curator
-OPENCLAW_DATASET_RELEASE_STORE=/data/openclaw/dataset_releases
-OPENCLAW_TRAINING_RUN_STORE=/data/openclaw/training_runs
-OPENCLAW_MODEL_ARTIFACT_STORE=/data/openclaw/model_artifacts
+export OPENCLAW_DATA_ROOT=/media/jdl2/DATAPART/YOLO-Data/openclaw
+export OPENCLAW_RAW_PACKAGE_STORE="$OPENCLAW_DATA_ROOT/raw_edge_packages"
+export OPENCLAW_CURATOR_STORE="$OPENCLAW_DATA_ROOT/curator"
+export OPENCLAW_DATASET_RELEASE_STORE="$OPENCLAW_DATA_ROOT/dataset_releases"
+export OPENCLAW_TRAINING_RUN_STORE="$OPENCLAW_DATA_ROOT/training_runs"
+export OPENCLAW_MODEL_ARTIFACT_STORE="$OPENCLAW_DATA_ROOT/model_artifacts"
+```
+
+Shell setup policy:
+
+- Interactive terminals used for `vision-curator` or `vision-trainer` work should run `source ~/openclaw-env.sh` before invoking repo commands.
+- Repo scripts that depend on these stores should check required `OPENCLAW_*` variables early and fail fast with a prompt to source `~/openclaw-env.sh`.
+- Explicit CLI path arguments remain valid for tests and one-off smoke work, but env variables are the preferred operational interface.
+
+Setup commands:
+
+```bash
+export OPENCLAW_DATA_ROOT=/media/jdl2/DATAPART/YOLO-Data/openclaw
+export OPENCLAW_RAW_PACKAGE_STORE="$OPENCLAW_DATA_ROOT/raw_edge_packages"
+export OPENCLAW_CURATOR_STORE="$OPENCLAW_DATA_ROOT/curator"
+export OPENCLAW_DATASET_RELEASE_STORE="$OPENCLAW_DATA_ROOT/dataset_releases"
+export OPENCLAW_TRAINING_RUN_STORE="$OPENCLAW_DATA_ROOT/training_runs"
+export OPENCLAW_MODEL_ARTIFACT_STORE="$OPENCLAW_DATA_ROOT/model_artifacts"
+
+mkdir -p \
+  "$OPENCLAW_RAW_PACKAGE_STORE/incoming" \
+  "$OPENCLAW_RAW_PACKAGE_STORE/phase1" \
+  "$OPENCLAW_RAW_PACKAGE_STORE/phase2/egohumans" \
+  "$OPENCLAW_RAW_PACKAGE_STORE/manifests" \
+  "$OPENCLAW_CURATOR_STORE/indexes" \
+  "$OPENCLAW_CURATOR_STORE/scores" \
+  "$OPENCLAW_CURATOR_STORE/review_queues" \
+  "$OPENCLAW_CURATOR_STORE/annotation_exports/cvat" \
+  "$OPENCLAW_CURATOR_STORE/annotation_imports/cvat" \
+  "$OPENCLAW_CURATOR_STORE/oracle/egohumans" \
+  "$OPENCLAW_CURATOR_STORE/revealed_gold" \
+  "$OPENCLAW_CURATOR_STORE/decisions" \
+  "$OPENCLAW_DATASET_RELEASE_STORE/pseudo_only" \
+  "$OPENCLAW_DATASET_RELEASE_STORE/calibration" \
+  "$OPENCLAW_DATASET_RELEASE_STORE/published" \
+  "$OPENCLAW_TRAINING_RUN_STORE/smoke" \
+  "$OPENCLAW_TRAINING_RUN_STORE/calibration" \
+  "$OPENCLAW_TRAINING_RUN_STORE/full" \
+  "$OPENCLAW_MODEL_ARTIFACT_STORE/candidates" \
+  "$OPENCLAW_MODEL_ARTIFACT_STORE/exported" \
+  "$OPENCLAW_MODEL_ARTIFACT_STORE/promotion_reports" \
+  "$OPENCLAW_MODEL_ARTIFACT_STORE/archived" \
+  "$OPENCLAW_DATA_ROOT/docs"
+```
+
+Codex sandbox access should grant the narrow shared root, not the full YOLO data mount:
+
+```toml
+[sandbox_workspace_write]
+writable_roots = ["/media/jdl2/DATAPART/YOLO-Data/openclaw"]
 ```
 
 ---

@@ -4,6 +4,8 @@ import json
 from pathlib import Path
 from typing import Any
 
+from vision_curator.common.env import expand_env_value
+
 
 def load_simple_config(path: str | Path) -> dict[str, Any]:
     """Load JSON or a small YAML subset used by the default configs."""
@@ -51,7 +53,7 @@ def _parse_scalar(value: str) -> Any:
             return []
         return [_parse_scalar(part.strip()) for part in inner.split(",")]
     if value.startswith('"') and value.endswith('"'):
-        return value[1:-1]
+        return expand_env_value(value[1:-1])
     try:
         return int(value)
     except ValueError:
@@ -59,4 +61,4 @@ def _parse_scalar(value: str) -> Any:
     try:
         return float(value)
     except ValueError:
-        return value
+        return expand_env_value(value)
