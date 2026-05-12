@@ -6,6 +6,7 @@ import json
 from vision_curator.annotation.cvat_export import export_cvat_task
 from vision_curator.annotation.cvat_import import import_cvat_annotations
 from vision_curator.common.env import path_from_arg_or_env
+from vision_curator.oracle.egohumans import import_egohumans_oracle
 from vision_curator.packages.ingest import ingest_package
 from vision_curator.packages.validate import validate_phase2_package
 from vision_curator.releases.build import build_release
@@ -52,6 +53,12 @@ def build_parser() -> argparse.ArgumentParser:
     cvat_import_parser.add_argument("--task-root", required=True)
     cvat_import_parser.add_argument("--store-root")
     cvat_import_parser.set_defaults(func=_import_cvat_annotations)
+
+    egohumans_oracle_parser = subparsers.add_parser("import-egohumans-oracle")
+    egohumans_oracle_parser.add_argument("--phase2", required=True)
+    egohumans_oracle_parser.add_argument("--dataset-root", required=True)
+    egohumans_oracle_parser.add_argument("--store-root")
+    egohumans_oracle_parser.set_defaults(func=_import_egohumans_oracle)
 
     return parser
 
@@ -102,6 +109,12 @@ def _import_cvat_annotations(args: argparse.Namespace) -> None:
     store_root = path_from_arg_or_env(args.store_root, "OPENCLAW_CURATOR_STORE")
     import_root = import_cvat_annotations(args.task_root, store_root)
     print(json.dumps({"import_root": str(import_root)}, sort_keys=True))
+
+
+def _import_egohumans_oracle(args: argparse.Namespace) -> None:
+    store_root = path_from_arg_or_env(args.store_root, "OPENCLAW_CURATOR_STORE")
+    result = import_egohumans_oracle(args.phase2, args.dataset_root, store_root)
+    print(json.dumps(result, sort_keys=True))
 
 
 if __name__ == "__main__":

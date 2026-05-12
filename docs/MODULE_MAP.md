@@ -17,6 +17,9 @@
 - `src/vision_curator/review/queues.py` builds review queue JSONL files from scored tracks.
 - `src/vision_curator/review/hard_cases.py` and `src/vision_curator/review/sampler.py` hold review helpers.
 
+## Oracle
+- `src/vision_curator/oracle/egohumans.py` imports EgoHumans hidden-oracle labels, normalized frame indexes, class maps, and deterministic reveal sets.
+
 ## Annotation
 - `src/vision_curator/annotation/cvat_export.py` creates CVAT task package stubs from review queues.
 - `src/vision_curator/annotation/cvat_import.py` imports corrected annotation packages.
