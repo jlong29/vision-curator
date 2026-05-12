@@ -55,6 +55,15 @@ Run at least these:
 5. track-aware plus simulated review-revealed gold
 6. oracle upper bound
 
+## Headroom Reference Experiment
+Because EgoHumans Lego Assembly has labels for the full calibration dataset, run one explicit headroom reference experiment:
+
+- train/evaluate a model using the complete oracle label set under a clearly marked `oracle_upper_bound` release,
+- compare that result against the iterative teacher-student self-learning releases,
+- report the gap as remaining headroom for the curation loop rather than as a realistic deployment workflow.
+
+This is the only experiment that should train from the complete hidden oracle label set. It must remain separate from gold-only, pseudo-label, and review-revealed releases so oracle labels do not leak into the simulated semi-supervised process.
+
 ## Main Questions Answered
 - Are trusted pseudo-labels actually precise?
 - Do review queues find real errors better than random sampling?
@@ -62,6 +71,7 @@ Run at least these:
 - Does a small growing gold set improve recall?
 - Does the student beat both the teacher and gold-only baseline?
 - Does the next teacher produce better pseudo labels?
+- How much headroom remains between the realistic iterative curation loop and training on the complete oracle label set?
 
 ## Main Warning
 This validates the machinery, not thermal-domain performance. EgoHumans is an egocentric RGB/multiview dataset, while the deployment target is helmet-mounted monocular thermal video. After this calibration succeeds, repeat with a small thermal gold set.
