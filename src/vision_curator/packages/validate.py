@@ -93,7 +93,7 @@ def validate_phase2_package(phase2_root: str | Path) -> dict[str, Any]:
     if not manifest["clips"]:
         raise ValueError(f"Root manifest clips list must not be empty: {manifest_path}")
     if manifest.get("dataset_source") == "egohumans":
-        _require_fields(manifest, EGOHUMANS_REQUIRED_PACKAGE_FIELDS, manifest_path)
+        _require_keys(manifest, EGOHUMANS_REQUIRED_PACKAGE_FIELDS, manifest_path)
 
     package_provenance = _provenance(manifest)
     expected_clip_ids = {_clip_id(item) for item in manifest["clips"]}
@@ -167,6 +167,12 @@ def _provenance(data: dict[str, Any]) -> dict[str, Any]:
 
 def _require_fields(data: dict[str, Any], fields: tuple[str, ...], path: Path) -> None:
     missing = [field for field in fields if field not in data or data[field] in ("", None)]
+    if missing:
+        raise ValueError(f"Missing required fields in {path}: {missing}")
+
+
+def _require_keys(data: dict[str, Any], fields: tuple[str, ...], path: Path) -> None:
+    missing = [field for field in fields if field not in data]
     if missing:
         raise ValueError(f"Missing required fields in {path}: {missing}")
 

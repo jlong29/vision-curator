@@ -14,14 +14,18 @@ from vision_curator.oracle.egohumans import bbox_from_pose_keypoints, import_ego
 
 class EgoHumansOracleImportTests(unittest.TestCase):
     def test_bbox_from_pose_keypoints_matches_upstream_padding_rule(self) -> None:
+        class ArrayLikePoints:
+            def tolist(self) -> list[list[float]]:
+                return [
+                    [10, 20, 0.9],
+                    [20, 30, 0.8],
+                    [30, 40, 0.7],
+                    [40, 50, 0.6],
+                    [50, 60, 0.95],
+                ]
+
         entry = {
-            "keypoints": [
-                [10, 20, 0.9],
-                [20, 30, 0.8],
-                [30, 40, 0.7],
-                [40, 50, 0.6],
-                [50, 60, 0.95],
-            ]
+            "keypoints": ArrayLikePoints()
         }
         bbox = bbox_from_pose_keypoints(entry, width=100, height=80)
         self.assertIsNotNone(bbox)
@@ -69,9 +73,16 @@ class EgoHumansOracleImportTests(unittest.TestCase):
             self.assertEqual(gold_negatives[0]["class_name"], "negative_frame")
             self.assertIsNone(gold_negatives[0]["oracle_record_id"])
 
+            rerun_result = import_egohumans_oracle(phase2, dataset, store)
+            self.assertEqual(rerun_result["frame_count"], 2)
+            self.assertEqual(rerun_result["oracle_label_count"], 1)
+            self.assertEqual(len(read_jsonl(oracle_root / "normalized" / "frame_index.jsonl")), 2)
+            self.assertEqual(len(read_jsonl(oracle_root / "normalized" / "oracle_labels.jsonl")), 1)
+
             manifest = read_json(oracle_root / "source_dataset_manifest.json")
             self.assertEqual(manifest["label_namespace"], "oracle_hidden")
             self.assertIn("proxy oracle labels", manifest["label_semantics"])
+            self.assertEqual(manifest["imported_package_ids"], ["005_legoassemble__phase2__fixture"])
 
     def test_cli_import_egohumans_oracle_smoke(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
@@ -169,7 +180,7 @@ def _write_phase2_package(root: Path) -> Path:
 
 def _write_dataset(root: Path) -> Path:
     dataset = root / "dataset"
-    poses = dataset / "poses"
+    poses = dataset / "005_legoassemble" / "poses"
     poses.mkdir(parents=True)
     _write_json(
         poses / "000100.json",

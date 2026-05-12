@@ -48,6 +48,26 @@ def import_egohumans_oracle(
         dataset_root=dataset_path,
         phase2_root=phase2_path,
     )
+    frame_rows = _merge_rows(
+        read_jsonl(normalized_root / "frame_index.jsonl"),
+        frame_rows,
+        key_fields=("package_id", "package_clip_id", "frame_idx"),
+    )
+    label_rows = _merge_rows(read_jsonl(normalized_root / "oracle_labels.jsonl"), label_rows, key_fields=("record_id",))
+    checked_negative_frames = _merge_rows(
+        read_jsonl(normalized_root / "oracle_checked_negative_frames.jsonl"),
+        checked_negative_frames,
+        key_fields=("package_id", "package_clip_id", "frame_idx"),
+    )
+    labeled_frame_keys = {
+        (row.get("package_id"), row.get("package_clip_id"), row.get("frame_idx"))
+        for row in label_rows
+    }
+    checked_negative_frames = [
+        row
+        for row in checked_negative_frames
+        if (row.get("package_id"), row.get("package_clip_id"), row.get("frame_idx")) not in labeled_frame_keys
+    ]
     reveal_sets = build_reveal_sets(label_rows, checked_negative_frames)
     source_manifest = build_source_dataset_manifest(
         validation=validation,
@@ -61,6 +81,7 @@ def import_egohumans_oracle(
     write_json(normalized_root / "class_map.json", CLASS_MAP)
     write_jsonl(normalized_root / "frame_index.jsonl", frame_rows)
     write_jsonl(normalized_root / "oracle_labels.jsonl", label_rows)
+    write_jsonl(normalized_root / "oracle_checked_negative_frames.jsonl", checked_negative_frames)
     for filename, rows in reveal_sets.items():
         write_jsonl(reveal_root / filename, rows)
 
@@ -151,7 +172,12 @@ def build_oracle_labels(
         if not pose_ref:
             warnings.append(_frame_warning(frame_row, "missing pose reference"))
             continue
-        pose_path = _resolve_source_path(str(pose_ref), dataset_root=Path(dataset_root), phase2_root=Path(phase2_root))
+        pose_path = _resolve_source_path(
+            str(pose_ref),
+            dataset_root=Path(dataset_root),
+            phase2_root=Path(phase2_root),
+            sequence_id=str(frame_row.get("source_sequence_id") or ""),
+        )
         if pose_path is None:
             warnings.append(_frame_warning(frame_row, f"pose reference not found: {pose_ref}"))
             continue
@@ -200,6 +226,7 @@ def build_source_dataset_manifest(
     warnings: list[str],
 ) -> dict[str, Any]:
     manifest = validation["manifest"]
+    package_ids = sorted({row["package_id"] for row in frame_rows if row.get("package_id")})
     sequences = sorted({row["source_sequence_id"] for row in frame_rows if row.get("source_sequence_id")})
     cameras = sorted({row["source_camera_id"] for row in frame_rows if row.get("source_camera_id")})
     return {
@@ -211,6 +238,8 @@ def build_source_dataset_manifest(
         "source_sequence_ids": sequences,
         "source_camera_ids": cameras,
         "package_id": validation["package_id"],
+        "latest_imported_package_id": validation["package_id"],
+        "imported_package_ids": package_ids,
         "label_namespace": LABEL_NAMESPACE_ORACLE,
         "label_semantics": LABEL_SEMANTICS,
         "box_source": BOX_SOURCE,
@@ -289,6 +318,8 @@ def _labels_from_pose_entries(
 
 def bbox_from_pose_keypoints(entry: dict[str, Any], width: int, height: int) -> list[float] | None:
     keypoints = entry.get("keypoints")
+    if hasattr(keypoints, "tolist"):
+        keypoints = keypoints.tolist()
     if not isinstance(keypoints, list):
         return None
     visible_count = 0
@@ -354,9 +385,9 @@ def _load_pose_entries(path: Path) -> list[dict[str, Any]]:
     raise ValueError(f"Expected pose annotation list/object in {path}")
 
 
-def _resolve_source_path(value: str, dataset_root: Path, phase2_root: Path) -> Path | None:
+def _resolve_source_path(value: str, dataset_root: Path, phase2_root: Path, sequence_id: str) -> Path | None:
     raw = Path(value)
-    candidates = [raw] if raw.is_absolute() else [dataset_root / raw, phase2_root / raw]
+    candidates = [raw] if raw.is_absolute() else [dataset_root / raw, dataset_root / sequence_id / raw, phase2_root / raw]
     for candidate in candidates:
         if candidate.is_file():
             return candidate
@@ -446,6 +477,14 @@ def _stable_id(prefix: str, *parts: str) -> str:
     return f"{prefix}_{digest}"
 
 
+def _merge_rows(existing: list[dict[str, Any]], new_rows: list[dict[str, Any]], key_fields: tuple[str, ...]) -> list[dict[str, Any]]:
+    merged: dict[tuple[Any, ...], dict[str, Any]] = {}
+    for row in existing + new_rows:
+        key = tuple(row.get(field) for field in key_fields)
+        merged[key] = row
+    return [merged[key] for key in sorted(merged, key=lambda item: tuple(str(part) for part in item))]
+
+
 def _stable_key(value: str) -> str:
     return hashlib.sha1(value.encode("utf-8")).hexdigest()
 
@@ -498,4 +537,3 @@ def _git_head(repo_root: Path) -> str | None:
     except (OSError, subprocess.CalledProcessError):
         return None
     return result.stdout.strip() or None
-

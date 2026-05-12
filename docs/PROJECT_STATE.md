@@ -35,3 +35,11 @@ The next task should process the completed Edge Node EgoHumans Lego Assembly pac
 - publish calibration releases for `vision-trainer`.
 
 Hidden oracle, revealed gold, and teacher pseudo labels must stay separate.
+
+## Current EgoHumans Package Location
+
+The six real Lego Assembly Phase 2 packages used for oracle smoke testing are staged under:
+
+`$OPENCLAW_RAW_PACKAGE_STORE/incoming`
+
+Keep this directory as the current immutable staging location until a deliberate archival/promote step is defined. Do not delete `incoming` just to make the package store flatter.
