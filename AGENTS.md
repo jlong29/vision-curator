@@ -2,7 +2,7 @@
 
 You are an AI coding agent operating inside the `vision-curator` repository.
 
-This file is always-on guidance. Keep it short, stable, and high-signal. Task-specific state belongs in `.agent/TASK_BRIEF.md`, `.agent/MEMORY.md`, or other `.agent/` scratch artifacts, not here.
+This file is always-on guidance. Keep it short, stable, and high-signal. Task-specific state belongs in `.agent/TASK_BRIEF.md`, `.agent/MEMORY.md`, or other `.agent/` working artifacts, not here.
 
 ---
 
@@ -156,7 +156,7 @@ Rules:
 - Create a branch for the task using a short name reflecting the goal of the task e.g. `add-oAuth`, `fix-callbacks`
 - Write the plan to: `.agent/TASK_BRIEF.md`
 
-`.agent/` is **untracked** and exists specifically for this ephemeral brief. The brief may be updated in Phase 2.
+`.agent/` is tracked in this repo and exists specifically for the active task brief, memory, and small logs. The brief may be updated in Phase 2.
 
 At the end of Phase 1:
 - Ensure `.agent/TASK_BRIEF.md` is up to date.
@@ -221,21 +221,21 @@ At completion:
 
 ---
 
-## `.agent/` folder policy (scratch only)
+## `.agent/` folder policy (tracked working area)
 
-`.agent/` is **untracked** and is intended as **scratch space only**. It should be safe to delete at any time, and it should be **cleared at task closeout**.
+`.agent/` is **tracked** in this repo. It is intended as the active working area for the current task and should be reset to lightweight templates at task closeout. Do not add bulky logs, raw packages, generated datasets, or long traces to `.agent/`.
 
 ### Purpose
-1) **Task Related documents** most notably TASK_BRIEF.md
+1) **Task-related documents**, most notably TASK_BRIEF.md
 2) **User-provided artifacts for debugging** (logs, traces, perf output) that the agent should inspect.
 3) **Agent working memory externalization** when the chat context window is under pressure.
 
 > Policy: when the agent learns a new *gotcha* during Phase 2, it should record it in `.agent/MEMORY.md` and only promote it to durable docs during closeout.
 
-### Flat structure (preferred)
+### Flat structure
 - `.agent/TASK_BRIEF.md` — compact task description, success criteria, and progress notes
 - `.agent/MEMORY.md` — compact running notes related to the work process rather than the task definition itself
-- `.agent/logs/` — log files and small extracted snippets
+- `.agent/logs/` — small task logs or extracted snippets only; empty it at closeout
 
 ### `.agent/TASK_BRIEF.md`
 During Phase 2 this document may be updated to reflect changes in:

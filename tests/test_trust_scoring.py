@@ -26,6 +26,35 @@ class TrustScoringTests(unittest.TestCase):
         self.assertIn("detection_density", first[0])
         self.assertIn("area_change", first[0])
 
+    def test_edge_table_columns_are_scored(self) -> None:
+        rows = [
+            {
+                "frame_idx": 0,
+                "source_frame_idx": 100,
+                "track_id": "42",
+                "confidence": 0.9,
+                "x1": 10,
+                "y1": 20,
+                "x2": 30,
+                "y2": 70,
+            },
+            {
+                "frame_idx": 1,
+                "source_frame_idx": 101,
+                "track_id": "42",
+                "confidence": 0.85,
+                "x1": 11,
+                "y1": 20,
+                "x2": 31,
+                "y2": 70,
+            },
+        ]
+        score = score_rows("pkg", "clip", rows, frame_count=2)[0]
+        self.assertEqual(score.track_id, "42")
+        self.assertEqual(score.duration_frames, 2)
+        self.assertEqual(score.decision_bucket, "trusted_full")
+        self.assertGreater(score.class_trust, 0.75)
+
     def test_required_buckets_are_reachable(self) -> None:
         cases = {
             "trusted_full": [

@@ -1,4 +1,4 @@
-release_store: build/releases
+release_store: ${OPENCLAW_DATASET_RELEASE_STORE}/pseudo_only
 source_root: tests/fixtures/release_source
 source_package_ids: [fixture_phase2_001]
 annotation_versions: [fixture]

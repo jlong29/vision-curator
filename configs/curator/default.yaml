@@ -1,1 +1,1 @@
-store_root: build/curator
+store_root: ${OPENCLAW_CURATOR_STORE}

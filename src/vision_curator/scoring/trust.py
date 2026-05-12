@@ -122,10 +122,10 @@ def _score_track(
     run_id: str,
     provenance: dict[str, Any],
 ) -> TrackScore:
-    ordered = sorted(rows, key=lambda row: int(float(row.get("frame_index", row.get("frame", 0)))))
+    ordered = sorted(rows, key=_frame_index)
     confidences = [_float(row.get("confidence", row.get("conf", row.get("score", 0.0)))) for row in ordered]
     boxes = [_box(row) for row in ordered]
-    duration_frames = len({int(float(row.get("frame_index", row.get("frame", index)))) for index, row in enumerate(ordered)})
+    duration_frames = len({_frame_index(row, index) for index, row in enumerate(ordered)})
     detection_count = len(ordered)
     density_denominator = frame_count if frame_count > 0 else max(duration_frames, 1)
     detection_density = _clamp(detection_count / density_denominator)
@@ -189,12 +189,22 @@ def _normalize_row(row: Any, source: Path) -> dict[str, Any]:
 def _box(row: dict[str, Any]) -> tuple[float, float, float, float]:
     if isinstance(row.get("bbox"), list) and len(row["bbox"]) == 4:
         return tuple(_float(value) for value in row["bbox"])  # type: ignore[return-value]
+    if all(key in row for key in ("x1", "y1", "x2", "y2")):
+        x1 = _float(row.get("x1"))
+        y1 = _float(row.get("y1"))
+        x2 = _float(row.get("x2"))
+        y2 = _float(row.get("y2"))
+        return (x1, y1, max(0.0, x2 - x1), max(0.0, y2 - y1))
     return (
         _float(row.get("x", row.get("bbox_x", 0.0))),
         _float(row.get("y", row.get("bbox_y", 0.0))),
         _float(row.get("w", row.get("width", row.get("bbox_w", 0.0)))),
         _float(row.get("h", row.get("height", row.get("bbox_h", 0.0)))),
     )
+
+
+def _frame_index(row: dict[str, Any], default: int = 0) -> int:
+    return int(_float(row.get("frame_idx", row.get("frame_index", row.get("frame", default)))))
 
 
 def _bbox_jitter(boxes: list[tuple[float, float, float, float]], frame_width: int, frame_height: int) -> float:
