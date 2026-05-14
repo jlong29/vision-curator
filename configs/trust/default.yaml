@@ -1,2 +1,20 @@
 class_trust_threshold: 0.75
 box_trust_threshold: 0.70
+egohumans_calibration:
+  naive_pseudo_confidence_threshold: 0.85
+  trusted_full:
+    class_trust_threshold: 0.90
+    box_trust_threshold: 0.80
+    min_track_length: 3
+    min_mean_confidence: 0.70
+    max_edge_fraction: 0.15
+    max_bbox_jitter: 0.20
+  trusted_class_weak_box:
+    class_trust_threshold: 0.90
+    box_trust_min: 0.55
+    box_trust_max_exclusive: 0.80
+  ambiguous:
+    class_trust_min: 0.45
+    class_trust_max_exclusive: 0.90
+    box_trust_min: 0.40
+    box_trust_max_exclusive: 0.55

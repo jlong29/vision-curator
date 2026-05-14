@@ -16,5 +16,32 @@
     "created_at",
     "creator",
     "tool_version"
-  ]
+  ],
+  "properties": {
+    "release_id": {"type": "string"},
+    "source_package_ids": {"type": "array", "items": {"type": "string"}},
+    "source_packages": {"type": "array", "items": {"type": "object"}},
+    "annotation_versions": {"type": "array", "items": {"type": "string"}},
+    "annotation_status": {"type": "string"},
+    "split_policy": {"type": ["object", "string"]},
+    "label_policy": {"type": ["object", "string"]},
+    "class_list": {"type": "array", "items": {"type": "string"}},
+    "counts_by_split": {"type": "object", "additionalProperties": {"type": "integer"}},
+    "counts_by_label_source": {"type": "object", "additionalProperties": {"type": "integer"}},
+    "created_at": {"type": "string"},
+    "creator": {"type": "string"},
+    "tool_version": {"type": "string"},
+    "release_family": {"type": "string"},
+    "label_namespaces_used_for_train": {"type": "array", "items": {"type": "string"}},
+    "label_namespaces_used_for_eval": {"type": "array", "items": {"type": "string"}},
+    "forbidden_label_namespaces_for_train": {"type": "array", "items": {"type": "string"}},
+    "realistic_calibration_loop": {"type": "boolean"},
+    "oracle_upper_bound": {"type": "boolean"},
+    "source_oracle_manifest": {"type": "string"},
+    "source_reveal_sets": {"type": "array", "items": {"type": "string"}},
+    "source_pseudo_policy": {"type": ["object", "null"]},
+    "split_assignment_artifact": {"type": "string"},
+    "diagnostic_headroom_only": {"type": "boolean"},
+    "provenance_records": {"type": "array", "items": {"type": "string"}}
+  }
 }

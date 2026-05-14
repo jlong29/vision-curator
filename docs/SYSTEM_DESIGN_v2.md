@@ -309,6 +309,8 @@ Trust scoring and queue selection must use teacher pseudo labels and edge proven
 
 Repos should communicate through immutable stores and manifests, not private ad hoc paths.
 
+Edge Node absolute paths are provenance only once packages are pulled to the desktop. Any file that desktop curation or training must read must be represented by a package-local, clip-local, package-relative, or release-relative path. This keeps the multi-machine pipeline portable across the Edge Node and desktop.
+
 Recommended desktop base root on this workstation:
 
 ```text

@@ -92,9 +92,27 @@ def _score_clip(package_id: str, clip: dict[str, Any]) -> list[TrackScore]:
     frame_width = int(clip_manifest.get("frame_width", clip_manifest.get("width", 640)))
     frame_height = int(clip_manifest.get("frame_height", clip_manifest.get("height", 512)))
     frame_count = int(clip_manifest.get("frame_count", 0))
+    track_rows = _read_rows(clip["tracks_path"])
+    if track_rows and _looks_like_track_summary(track_rows[0]):
+        return [
+            _score_track_summary(
+                package_id,
+                clip["clip_id"],
+                row,
+                frame_width,
+                frame_height,
+                frame_count,
+                clip["source_path"],
+                clip["clip_path"],
+                clip.get("run_id", ""),
+                clip.get("provenance", {}),
+            )
+            for row in track_rows
+            if str(row.get("track_id", "")) not in ("", "None", "nan")
+        ]
     rows = _read_rows(clip["detections_path"])
     if not rows:
-        rows = _read_rows(clip["tracks_path"])
+        rows = track_rows
     return score_rows(
         package_id,
         clip["clip_id"],
@@ -106,6 +124,55 @@ def _score_clip(package_id: str, clip: dict[str, Any]) -> list[TrackScore]:
         clip["clip_path"],
         clip.get("run_id", ""),
         clip.get("provenance", {}),
+    )
+
+
+def _score_track_summary(
+    package_id: str,
+    clip_id: str,
+    row: dict[str, Any],
+    frame_width: int,
+    frame_height: int,
+    frame_count: int,
+    source_path: str,
+    clip_path: str,
+    run_id: str,
+    provenance: dict[str, Any],
+) -> TrackScore:
+    duration_frames = int(_float(row.get("duration_frames", row.get("frames_present", 0))))
+    detection_count = int(_float(row.get("frames_present", row.get("detection_count", duration_frames))))
+    density_denominator = frame_count if frame_count > 0 else max(duration_frames, 1)
+    detection_density = _clamp(_float(row.get("detection_density", detection_count / density_denominator)))
+    mean_conf = _float(row.get("mean_confidence", row.get("mean_conf", 0.0)))
+    min_conf = _float(row.get("min_confidence", row.get("min_conf", mean_conf)))
+    bbox_jitter = _normalize_summary_jitter(_float(row.get("bbox_jitter_mean", row.get("bbox_jitter", 0.0))), frame_width, frame_height)
+    area_change = _clamp(_float(row.get("bbox_area_std", 0.0)) / max(_float(row.get("bbox_area_mean", 0.0)), 1.0))
+    edge_fraction = _clamp(_float(row.get("edge_fraction", 0.0)))
+    class_trust = _clamp(0.65 * mean_conf + 0.25 * min_conf + 0.10 * detection_density + min(duration_frames, 30) / 300)
+    box_trust = _clamp(1.0 - bbox_jitter * 1.5 - area_change * 0.4 - edge_fraction * 0.4)
+    decision_bucket = _bucket(class_trust, box_trust, duration_frames)
+    review_priority = round(_review_priority(class_trust, box_trust, edge_fraction, decision_bucket), 6)
+    return TrackScore(
+        package_id=package_id,
+        clip_id=clip_id,
+        track_id=str(row.get("track_id", "")),
+        source_path=source_path,
+        clip_path=clip_path,
+        run_id=run_id,
+        class_trust=round(class_trust, 6),
+        box_trust=round(box_trust, 6),
+        duration_frames=duration_frames,
+        frame_count=frame_count,
+        detection_count=detection_count,
+        detection_density=round(detection_density, 6),
+        mean_conf=round(mean_conf, 6),
+        min_conf=round(min_conf, 6),
+        bbox_jitter=round(bbox_jitter, 6),
+        area_change=round(area_change, 6),
+        edge_fraction=round(edge_fraction, 6),
+        decision_bucket=decision_bucket,
+        review_priority=review_priority,
+        provenance=provenance,
     )
 
 
@@ -166,6 +233,13 @@ def _score_track(
 
 def _read_rows(path: str | Path) -> list[dict[str, Any]]:
     target = Path(path)
+    if target.suffix == ".parquet" and not _looks_textual(target):
+        try:
+            import pandas as pd  # type: ignore
+        except ImportError as exc:
+            raise RuntimeError(f"Reading parquet score inputs requires pandas/pyarrow: {target}") from exc
+        frame = pd.read_parquet(target)
+        return [_normalize_row(row, target) for row in frame.to_dict(orient="records")]
     text = target.read_text(encoding="utf-8").strip()
     if not text:
         return []
@@ -184,6 +258,23 @@ def _normalize_row(row: Any, source: Path) -> dict[str, Any]:
     if not isinstance(row, dict):
         raise ValueError(f"Expected object row in {source}: {row!r}")
     return row
+
+
+def _looks_like_track_summary(row: dict[str, Any]) -> bool:
+    return "duration_frames" in row and "mean_confidence" in row and "bbox_jitter_mean" in row
+
+
+def _looks_textual(path: Path) -> bool:
+    with path.open("rb") as fh:
+        sample = fh.read(4)
+    return sample.startswith((b"{", b"["))
+
+
+def _normalize_summary_jitter(value: float, frame_width: int, frame_height: int) -> float:
+    if value <= 1.0:
+        return _clamp(value)
+    diagonal = max(math.hypot(frame_width, frame_height), 1.0)
+    return _clamp(value / diagonal)
 
 
 def _box(row: dict[str, Any]) -> tuple[float, float, float, float]:

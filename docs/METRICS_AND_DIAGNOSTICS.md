@@ -40,3 +40,17 @@ For EgoHumans, diagnostics must distinguish:
 - oracle upper-bound results.
 
 Hidden oracle labels are diagnostic/evaluation data. They must not influence trust scoring or queue generation unless they are explicitly copied into the revealed-gold namespace.
+
+### Current Release Interpretation Notes
+
+The current `gold_plus_trusted_tracks_v0` release is intentionally conservative. Its training set has 626 objects (`gold_seed_v0=574`, `trusted_track=52`), while validation and test have 1371 and 1695 oracle-evaluation objects respectively. Treat this as a precision-first ablation; it may be too sparse for training usefulness.
+
+Before relaxing trusted-track thresholds, compare trusted pseudo labels against hidden oracle labels on non-test calibration data. Do not use the hidden test split to tune thresholds.
+
+### Release Count Snapshot
+
+- `gold_only_v0`: train 567, val 904, test 1098 images; label sources `gold_seed_v0=574`, `oracle_eval=3066`.
+- `gold_plus_naive_pseudo_v0`: train 3707, val 904, test 1098 images; label sources `gold_seed_v0=574`, `naive_confidence=4962`, `oracle_eval=3066`.
+- `gold_plus_trusted_tracks_v0`: train 613, val 904, test 1098 images; label sources `gold_seed_v0=574`, `trusted_track=52`, `oracle_eval=3066`.
+- `gold_plus_review_revealed_v1`: train 820, val 904, test 1098 images; label sources `gold_seed_v0=574`, `review_revealed_gold_v0=263`, `oracle_eval=3066`.
+- `oracle_upper_bound`: train 3977, val 904, test 1098 images; label sources `oracle_upper_bound_train=5773`, `oracle_eval=3066`.
