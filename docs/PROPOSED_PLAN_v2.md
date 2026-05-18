@@ -1,5 +1,19 @@
 # Updated Proposed Plan — Bootstrap Labeling System
 
+## 2026-05-14 progress note
+
+`vision-curator` has completed the EgoHumans Lego Assembly calibration release materialization task. The six staged Phase 2 packages were validated, ingested, scored, and used to build review queues. Hidden oracle, revealed gold, and teacher pseudo labels are separated, frozen split assignments exist, and five trainer-ready releases now exist under `$OPENCLAW_DATASET_RELEASE_STORE/calibration`:
+
+- `gold_only_v0`
+- `gold_plus_naive_pseudo_v0`
+- `gold_plus_trusted_tracks_v0`
+- `gold_plus_review_revealed_v1`
+- `oracle_upper_bound`
+
+Curator validation, `vision-trainer` release validation, and `vision-trainer` dry-run command preparation passed for all five release roots.
+
+The immediate active task has moved to `vision-trainer`: run the EgoHumans calibration test matrix described in `docs/EGOHUMANS_VISION_TRAINER_TASK_SPEC.md` and report results across the shared frozen validation/test definitions. Two curator follow-ups remain important: formalize portable package paths versus Edge-local provenance paths, and analyze trusted-track pseudo-label precision on non-test oracle data before relaxing thresholds.
+
 ## Current State
 
 The system has now moved from a two-repo edge/training split toward the intended three-layer architecture:
@@ -9,12 +23,12 @@ The system has now moved from a two-repo edge/training split toward the intended
    - `thermal-data-engine`
 
 2. **Vision Curator**
-   - `vision-curator` repo skeleton has been created according to `VISION_CURATOR_REPO_DESIGN.md`
+   - `vision-curator` now owns package validation, ingest, trust scoring, review queues, hidden-oracle import, frozen EgoHumans calibration splits, and trainer-ready release materialization.
 
 3. **Vision Trainer**
    - `vision-trainer`
 
-This is the correct architectural direction. The immediate priority shifts from designing `vision-curator` to bringing it up as the desktop-side curation control plane.
+This is the correct architectural direction. The immediate priority has shifted from bringing up `vision-curator` to using the curated EgoHumans releases in `vision-trainer`.
 
 ## 2026-04-30 execution update
 
@@ -30,13 +44,13 @@ This is the correct architectural direction. The immediate priority shifts from 
 - End-to-end smoke validation on `incoming/example.mp4` completed successfully with ByteTrack metadata preserved in the emitted run and bundle artifacts.
 
 ### In progress / waiting on other nodes
-- `vision-curator` desktop execution of ingest, scoring, queue, and draft-release tasks.
-- `vision-trainer` desktop execution of curated-release validation and smoke-train preparation.
-- Desktop pull of real edge packages into the curator store.
+- `vision-trainer` execution of the EgoHumans calibration training matrix.
+- Analysis of trusted-track pseudo-label precision against hidden oracle labels on non-test calibration data.
+- Contract cleanup for portable package-relative paths versus Edge-local provenance paths.
 
 ### Explicit human gating points
 - CVAT labeling is required before claiming gold negatives, frozen hard-case evaluation slices, or a trustworthy annotation roundtrip.
-- Curated-release smoke wiring may proceed before CVAT, but real evaluation quality claims may not.
+- EgoHumans simulated reveal can support calibration experiments before CVAT, but it validates the machinery rather than thermal-domain performance.
 
 ---
 
@@ -162,7 +176,7 @@ Edge-side thermal video capture, triage, and package generation.
 Desktop-side curation, review, audit, and dataset release repo.
 
 ### Updated Status
-The repo skeleton and first useful curation workflow now exist. The task has shifted from bring-up to running real edge packages through the curator and producing calibration/training artifacts.
+The repo now has a working EgoHumans calibration release workflow. It validates and ingests real staged Phase 2 packages, scores real package tables, builds review queues, freezes split assignments, and emits trainer-ready release roots.
 
 ### Responsibilities
 - Ingest raw Phase 1 and Phase 2 packages from the shared package store
@@ -184,47 +198,41 @@ The repo skeleton and first useful curation workflow now exist. The task has shi
 - `export-cvat-task`
 - `import-cvat-annotations`
 - `build-release`
+- `build-egohumans-splits`
+- `build-egohumans-release`
+- `validate-release`
 
-### Immediate Execution Work
-1. Pull completed Phase 2 edge packages into the desktop raw package store.
-2. Validate and ingest real package roots without mutating them.
-3. Score teacher detections/tracks with deterministic class and box trust.
-4. Generate hard-case, ambiguous, candidate-negative, and random-audit queues.
-5. Register EgoHumans ground truth as hidden oracle labels for calibration only.
-6. Reveal a controlled subset as simulated gold/review labels.
-7. Publish pseudo-only and calibration releases that `vision-trainer` can validate.
+### Completed EgoHumans Execution Work
+1. Validated and ingested six staged EgoHumans Phase 2 package roots without mutating them.
+2. Scored teacher detections/tracks with deterministic class and box trust.
+3. Generated hard-case, ambiguous, candidate-negative, and random-audit queues.
+4. Registered EgoHumans ground truth as hidden oracle labels for calibration only.
+5. Used controlled reveal sets for seed/review gold labels.
+6. Built frozen split assignments shared across release families.
+7. Published five calibration releases that `vision-trainer` validates.
 
-### First Useful Output
-A curation release with this shape:
+### Current Calibration Output
+Trainer-ready YOLO release roots now live under:
 
 ```text
-<curated_release_root>/
-├─ release_manifest.json
-├─ datasets/
-│  ├─ gold_hard_train/
-│  ├─ gold_hard_val/
-│  ├─ gold_hard_test/
-│  ├─ pseudo_strong_train/
-│  └─ gold_negative_train/
-├─ review_queues/
-│  ├─ hard_cases.jsonl
-│  ├─ ambiguous.jsonl
-│  ├─ random_audit.jsonl
-│  └─ candidate_negatives.jsonl
-└─ provenance/
-   ├─ source_packages.jsonl
-   └─ curation_decisions.jsonl
+$OPENCLAW_DATASET_RELEASE_STORE/calibration/
+├─ gold_only_v0/
+├─ gold_plus_naive_pseudo_v0/
+├─ gold_plus_trusted_tracks_v0/
+├─ gold_plus_review_revealed_v1/
+└─ oracle_upper_bound/
 ```
 
 ### Status
 - Repo skeleton: done.
 - Bring-up tests: done for current local fixtures.
-- Phase 2 package validation and ingest: done for fixture packages; ready for real Edge Node package validation.
-- Trust scoring: deterministic first pass done.
+- Phase 2 package validation and ingest: done for fixtures and staged EgoHumans real packages.
+- Trust scoring: deterministic first pass done and exercised against real EgoHumans package tables.
 - Review queues: deterministic first pass done.
 - CVAT export/import boundaries: present, still human-labeling dependent for real gold claims.
-- Dataset release builder/validator: draft path done.
-- Frozen hard-case eval set: blocked on CVAT labeling or EgoHumans simulated reveal policy.
+- Dataset release builder/validator: generic path plus EgoHumans calibration path done.
+- Frozen EgoHumans validation/test split assignment: done.
+- Thermal-domain frozen hard-case eval set: still blocked on thermal gold labeling.
 
 ---
 
@@ -242,17 +250,17 @@ Train, evaluate, export, and package model artifacts from curated datasets.
 - Avoid reimplementing edge runtime or curation logic
 
 ### Near-Term Work
-- Update `vision-trainer` to treat `vision-curator` releases as the preferred input contract.
+- Run the EgoHumans calibration matrix over the five curated release roots.
 - Keep direct Phase 1 ingestion as a bootstrap/smoke path.
-- Add release-level validation once `vision-curator` publishes its first release manifest.
-- Clarify whether `docs/handoffs/EDGE_TO_DESKTOP.md` should describe:
-  - edge → raw package store → curator, or
-  - edge → trainer direct bootstrap only.
+- Report release-level metrics with release IDs, dataset roots, run directories, validation/test metrics, and interpretation notes.
+- Compare naive high-confidence pseudo labels against trusted-track pseudo labels and review-revealed gold.
 
 ### Status
 - Basic train/eval setup: done.
 - Phase 1 direct training path: done.
-- Curated release input path: not done.
+- Curated release validation path: done for current EgoHumans release roots.
+- Curated release dry-run training command preparation: done for current EgoHumans release roots.
+- Full EgoHumans calibration training matrix: next.
 - TensorRT export: not done.
 - Promotion workflow: not done.
 
@@ -267,72 +275,81 @@ The shared store should be outside all repos. Repos should reference it through 
 Recommended root:
 
 ```text
-/data/thermal_vision/
+/media/jdl2/DATAPART/YOLO-Data/openclaw/
 ```
 
-or, if staying under OpenClaw workspace:
+Use environment variables:
 
-```text
-~/.openclaw/workspace/vision_data/
+```bash
+export OPENCLAW_DATA_ROOT=/media/jdl2/DATAPART/YOLO-Data/openclaw
+export OPENCLAW_RAW_PACKAGE_STORE="$OPENCLAW_DATA_ROOT/raw_edge_packages"
+export OPENCLAW_CURATOR_STORE="$OPENCLAW_DATA_ROOT/curator"
+export OPENCLAW_DATASET_RELEASE_STORE="$OPENCLAW_DATA_ROOT/dataset_releases"
+export OPENCLAW_TRAINING_RUN_STORE="$OPENCLAW_DATA_ROOT/training_runs"
+export OPENCLAW_MODEL_ARTIFACT_STORE="$OPENCLAW_DATA_ROOT/model_artifacts"
 ```
 
 ## Suggested Layout
 
 ```text
-vision_data/
-├─ raw_packages/
+openclaw/
+├─ raw_edge_packages/
+│  ├─ incoming/
 │  ├─ phase1/
 │  └─ phase2/
-├─ curation/
+├─ curator/
 │  ├─ indexes/
+│  ├─ scores/
 │  ├─ review_queues/
-│  ├─ cvat_exports/
-│  ├─ cvat_imports/
-│  └─ curated_releases/
-├─ trainer/
-│  ├─ runs/
-│  ├─ evals/
-│  └─ artifacts/
-└─ deployment/
-   ├─ candidates/
-   ├─ staged/
-   └─ promoted/
+│  ├─ annotation_exports/
+│  ├─ annotation_imports/
+│  ├─ oracle/
+│  ├─ image_cache/
+│  └─ decisions/
+├─ dataset_releases/
+│  ├─ pseudo_only/
+│  ├─ calibration/
+│  └─ published/
+├─ training_runs/
+├─ model_artifacts/
+└─ docs/
 ```
 
 ## Repo Access Pattern
 
 ### `thermal-data-engine`
 Writes:
-- `raw_packages/phase1/`
-- `raw_packages/phase2/`
+- `raw_edge_packages/phase1/`
+- `raw_edge_packages/phase2/`
 
 ### `vision-curator`
 Reads:
-- `raw_packages/phase1/`
-- `raw_packages/phase2/`
+- `raw_edge_packages/phase1/`
+- `raw_edge_packages/phase2/`
 
 Writes:
-- `curation/indexes/`
-- `curation/review_queues/`
-- `curation/cvat_exports/`
-- `curation/cvat_imports/`
-- `curation/curated_releases/`
+- `curator/indexes/`
+- `curator/scores/`
+- `curator/review_queues/`
+- `curator/annotation_exports/`
+- `curator/annotation_imports/`
+- `curator/oracle/`
+- `curator/image_cache/`
+- `dataset_releases/`
 
 ### `vision-trainer`
 Reads:
-- `curation/curated_releases/`
+- `dataset_releases/`
 
 Writes:
-- `trainer/runs/`
-- `trainer/evals/`
-- `trainer/artifacts/`
-- `deployment/candidates/`
+- `training_runs/`
+- `model_artifacts/candidates/`
 
 ### Edge Deployment Tools
 Read:
-- `deployment/candidates/`
-- `deployment/staged/`
-- `deployment/promoted/`
+- `model_artifacts/candidates/`
+- `model_artifacts/exported/`
+- `model_artifacts/promotion_reports/`
 
 Push to Xavier NX staging slot by explicit deployment action.
 
@@ -348,7 +365,7 @@ From desktop:
 ```bash
 rsync -avh --partial --progress \
   xavier:~/.openclaw/workspace/outputs/thermal_data_engine/bundles/ \
-  /data/thermal_vision/raw_packages/phase2/
+  "$OPENCLAW_RAW_PACKAGE_STORE/phase2/"
 ```
 
 For Phase 1:
@@ -356,7 +373,7 @@ For Phase 1:
 ```bash
 rsync -avh --partial --progress \
   xavier:~/.openclaw/workspace/outputs/thermal_data_engine/phase1_packages/ \
-  /data/thermal_vision/raw_packages/phase1/
+  "$OPENCLAW_RAW_PACKAGE_STORE/phase1/"
 ```
 
 ### Rules
@@ -400,15 +417,14 @@ High, because this governs how agents coordinate all following work.
 ### Status
 - Inference/package generation: mostly done.
 - OpenClaw tools: done.
-- Tracking validation: not done.
-- Desktop-pull sync: not done.
+- Tracking validation: done for the current ByteTrack/EgoHumans staged package path; keep backend metadata explicit in each manifest.
+- Desktop-pull sync: manual/staged package transfer works; durable rsync helper and post-sync validation remain open.
 
 ### Next Tasks
-1. Add backend/tracker metadata to manifests if missing.
-2. Run a short video through the pipeline and verify persistent `track_id` output.
-3. Confirm tracker config path/name in logs and manifests.
-4. Add `rsync` pull script on desktop.
-5. Add post-sync validation command.
+1. Formalize portable path checks so package-local artifacts are consumable on desktop and Edge-local absolute paths remain provenance only.
+2. Add an `rsync` pull helper on desktop.
+3. Add a post-sync validation command.
+4. Keep backend/tracker metadata explicit in package manifests and logs.
 
 ---
 
@@ -425,21 +441,16 @@ High, because this governs how agents coordinate all following work.
 - First curated release manifest
 
 ### Status
-- Repo skeleton: done.
-- 2026-04-30 update: a concrete desktop execution packet now exists at `src/vision-curator/docs/handoffs/WORKSPACE_NEXT_STEPS_20260430.md`.
-- Everything else: next.
+- Done for current EgoHumans calibration bring-up.
+- Real staged EgoHumans package roots validated/ingested/scored.
+- Review queues and frozen split assignments built.
+- Five calibration release roots produced and validated.
 
 ### Next Tasks
-1. Pull and validate completed Edge Node EgoHumans Phase 2 packages.
-2. Ingest package roots into the immutable curator index.
-3. Score teacher detections/tracks from edge table fields.
-4. Generate queue JSONL files:
-   - hard cases
-   - ambiguous tracks
-   - random audit
-   - candidate negatives
-5. Register hidden EgoHumans oracle labels without leaking them into trust scoring.
-6. Publish first pseudo-only and calibration release manifests.
+1. Add non-test oracle precision diagnostics for trusted pseudo labels.
+2. Improve record-level lineage in `label_items.jsonl`.
+3. Formalize path portability validation for package-relative consumable paths vs Edge-local provenance paths.
+4. Preserve CVAT/FiftyOne workflows for thermal gold review.
 
 ---
 
@@ -459,8 +470,8 @@ Partially done. CVAT export/import command boundaries exist, but real human labe
 ### Next Tasks
 1. Export selected review queues to CVAT when human labeling is desired.
 2. Import corrected labels back into `vision-curator`.
-3. For EgoHumans, implement hidden-oracle import plus controlled reveal records.
-4. Create initial hard-case validation split after labels are confirmed or explicitly simulated.
+3. Use the current EgoHumans hidden-oracle and controlled-reveal records for calibration reporting.
+4. Create the initial thermal hard-case validation split after labels are confirmed.
 5. Add audit reports for pseudo-label precision against hidden oracle labels.
 
 ---
@@ -477,15 +488,14 @@ Partially done. CVAT export/import command boundaries exist, but real human labe
   - hard-case test set
 
 ### Status
-Partially enabled. `vision-curator` can build immutable draft releases; downstream curated-release training remains a `vision-trainer` task.
-- 2026-04-30 update: a concrete desktop execution packet now exists at `src/vision-trainer/docs/handoffs/WORKSPACE_NEXT_STEPS_20260430.md`.
+Enabled for EgoHumans calibration. `vision-curator` has built five trainer-ready releases, and `vision-trainer` validation/dry-run preparation succeeds for all five. Running the full training matrix remains a `vision-trainer` task.
 
 ### Next Tasks
-1. Hand `vision-trainer` a real or fixture curated release root.
-2. Add/verify release validator in `vision-trainer`.
-3. Add training config that targets curated release paths.
-4. Run single-GPU smoke training on a minimal curated release.
-5. Scale to 3-GPU run only after smoke pass.
+1. Run smoke training for all five EgoHumans release roots.
+2. Run the full calibration matrix.
+3. Report metrics by release ID and dataset root.
+4. Compare naive pseudo, trusted-track pseudo, review-revealed, and oracle upper-bound outcomes.
+5. Feed results back into curator trust-threshold and review-priority decisions.
 
 ---
 
@@ -544,7 +554,7 @@ Not done.
 - `vision-curator` ingests raw packages without mutating upstream artifacts.
 - Trust scores and review queues are reproducible.
 - CVAT/FiftyOne workflows are connected to curated records.
-- Frozen hard-case eval set v1 exists.
+- EgoHumans frozen calibration eval exists; thermal hard-case eval set v1 remains the human-labeling target.
 - Curated releases are immutable and versioned.
 
 ## Trainer-Side
@@ -561,25 +571,24 @@ Not done.
 
 ## Immediate Recommended Active Task
 
-Now that the Edge Node has completed EgoHumans package processing, the next workspace task should be:
+Now that `vision-curator` has published the EgoHumans calibration releases, the next workspace task should be:
 
-> Run completed EgoHumans Phase 2 packages through `vision-curator`, build trust scores and review queues, register hidden oracle labels, reveal a controlled gold subset, and publish calibration releases for `vision-trainer`.
+> Run the EgoHumans calibration training matrix in `vision-trainer` using the five curated release roots and report the results against the frozen validation/test definitions.
 
 ### Active Repo
-`src/vision-curator`
+`src/vision-trainer`
 
 ### Supporting Repos
-- `src/thermal-data-engine` for source package contracts
-- `src/vision-trainer` for downstream curated release expectations
+- `src/vision-curator` for release manifests, label policy, and curation diagnostics
+- `src/thermal-data-engine` / `vision_api` for source package provenance
 
 ### First Definition of Done
-- `vision-curator` tests pass.
-- It validates and ingests pulled EgoHumans Phase 2 package roots.
-- It writes canonical package index entries with edge provenance preserved.
-- It computes class/box trust metrics from Phase 2 detections/tracks.
-- It produces review queue JSONL files for the required queue kinds.
-- It keeps hidden oracle, revealed gold, and teacher pseudo labels separate.
-- It emits curated release manifests consumable by `vision-trainer`.
+- `vision-trainer` validates all five release roots.
+- Smoke training runs for all five release roots.
+- Full calibration runs complete for the planned matrix.
+- Results report metrics for `gold_only_v0`, `gold_plus_naive_pseudo_v0`, `gold_plus_trusted_tracks_v0`, `gold_plus_review_revealed_v1`, and `oracle_upper_bound`.
+- The report treats `oracle_upper_bound` as diagnostic headroom only.
+- The report notes that `gold_plus_trusted_tracks_v0` is sparse and should not be judged only by final training accuracy without pseudo-label precision analysis.
 
 ---
 
@@ -592,3 +601,4 @@ Now that the Edge Node has completed EgoHumans package processing, the next work
 - Preserve provenance fields everywhere.
 - Treat missing or malformed manifests as hard validation failures.
 - Keep Phase 1 direct training support as a bootstrap path, but make curated releases the intended long-term interface.
+- Treat Edge Node absolute paths as provenance only; desktop workflows should consume package-local or release-local paths.

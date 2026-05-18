@@ -138,6 +138,20 @@ Phase 1 and Phase 2 should coexist.
 - Optionally expose FiftyOne views
 - Create immutable dataset releases for `vision-trainer`
 
+### Current status
+
+`vision-curator` now validates and ingests the six staged EgoHumans Lego Assembly Phase 2 packages, scores teacher tracks, builds review queues, maintains hidden-oracle/revealed-gold artifacts, freezes calibration splits, and emits trainer-ready EgoHumans calibration releases.
+
+The current calibration release families are:
+
+- `gold_only_v0`
+- `gold_plus_naive_pseudo_v0`
+- `gold_plus_trusted_tracks_v0`
+- `gold_plus_review_revealed_v1`
+- `oracle_upper_bound`
+
+All realistic calibration releases forbid `oracle_hidden` for training. `oracle_upper_bound` is diagnostic headroom only.
+
 ### Non-responsibilities
 
 - Running edge inference
@@ -164,7 +178,7 @@ Phase 1 and Phase 2 should coexist.
 
 ### Current status
 
-The basic training/evaluation/export repo exists. It should evolve to consume curated dataset releases from `vision-curator` instead of relying only on raw Phase 1 packages.
+The basic training/evaluation/export repo exists and can validate the current EgoHumans curated release roots. The next active system task is to run the full calibration matrix over the five release families and report results against the shared frozen validation/test definitions.
 
 ---
 
@@ -192,6 +206,8 @@ vision-curator ingest + trust scoring
 CVAT/FiftyOne review loop
     ↓
 Curated dataset release
+    ├── realistic calibration releases
+    └── diagnostic oracle upper bound
     ↓
 vision-trainer training + evaluation
     ↓
@@ -303,11 +319,23 @@ During calibration, keep three label namespaces separate:
 
 Trust scoring and queue selection must use teacher pseudo labels and edge provenance only. Hidden oracle labels may measure precision/recall or populate explicitly revealed gold sets, but they must not silently influence pseudo-label acceptance.
 
+Current EgoHumans release materialization uses a frozen split assignment artifact under:
+
+```text
+$OPENCLAW_CURATOR_STORE/oracle/egohumans/splits/split_assignments_v0.jsonl
+```
+
+The split assignment is sequence-time chunk based, shared across release families, and keeps validation/test definitions stable for trainer comparisons.
+
+Current interpretation caveat: `gold_plus_trusted_tracks_v0` is deliberately precision-first and sparse. It should be evaluated as a conservative trusted-track ablation; threshold relaxation should be based on non-test oracle precision analysis, not hidden test metrics.
+
 ---
 
 ## Shared Data Stores
 
 Repos should communicate through immutable stores and manifests, not private ad hoc paths.
+
+Edge Node absolute paths are provenance only once packages are pulled to the desktop. Any file that desktop curation or training must read must be represented by a package-local, clip-local, package-relative, or release-relative path. This keeps the multi-machine pipeline portable across the Edge Node and desktop.
 
 Recommended desktop base root on this workstation:
 
@@ -336,6 +364,8 @@ Recommended desktop layout:
 │  ├─ annotation_imports/
 │  │  └─ cvat/
 │  ├─ oracle/
+│  │  └─ egohumans/
+│  ├─ image_cache/
 │  │  └─ egohumans/
 │  ├─ revealed_gold/
 │  └─ decisions/

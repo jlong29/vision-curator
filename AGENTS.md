@@ -22,6 +22,7 @@ When docs and code disagree, trust these files:
 - `src/vision_curator/scoring/trust.py` — trust score and decision bucket semantics
 - `src/vision_curator/review/queues.py` — review queue record/output behavior
 - `src/vision_curator/releases/build.py` — dataset release layout and immutability behavior
+- `src/vision_curator/releases/egohumans.py` — EgoHumans calibration split/release policy
 - `schemas/` and `docs/package_contracts.md` — durable external contracts
 
 Additional repo-specific rules:
@@ -30,6 +31,7 @@ Additional repo-specific rules:
 - Dataset releases are immutable once published; do not overwrite an existing release unless the user explicitly asks for destructive behavior.
 - Keep CVAT and FiftyOne optional for core tests and bring-up workflows.
 - Prefer explicit metadata and provenance over inferred or silent defaults.
+- Treat absolute Edge Node paths as provenance only. Desktop curator workflows must consume package-local/relative artifacts after package transfer.
 
 ---
 
@@ -83,6 +85,9 @@ python -m vision_curator.cli build-review-queue --queue-kind hard-case --store-r
 ### Dataset Releases
 ```bash
 python -m vision_curator.cli build-release --config configs/release/default.yaml --release-id <release_id>
+python -m vision_curator.cli build-egohumans-splits --store-root /data/openclaw/curator
+python -m vision_curator.cli build-egohumans-release --release-family gold_only_v0 --release-id gold_only_v0 --store-root /data/openclaw/curator --release-store /data/openclaw/dataset_releases
+python -m vision_curator.cli validate-release --release-root /data/openclaw/dataset_releases/calibration/gold_only_v0
 ```
 
 ### Tests
@@ -121,6 +126,7 @@ Validation must fail loudly on missing required files or required manifest field
 - `<curator_store>/review_queues/<queue_id>.jsonl` — review items for hard-case, ambiguous, candidate-negative, disagreement, or random-audit workflows.
 - `<curator_store>/annotation_exports/cvat/<task_id>/` and `<curator_store>/annotation_imports/cvat/<task_id>/` — CVAT exchange packages.
 - `<dataset_release_store>/<release_id>/` — immutable release consumed by `vision-trainer`.
+- `<curator_store>/image_cache/egohumans/` — desktop-side cache of extracted EgoHumans frames used only to materialize releases when oracle/source records contain Edge-local paths.
 
 ### Trust Buckets
 Preserve these bucket names unless the user explicitly changes the contract:

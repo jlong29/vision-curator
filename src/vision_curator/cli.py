@@ -10,6 +10,8 @@ from vision_curator.oracle.egohumans import import_egohumans_oracle
 from vision_curator.packages.ingest import ingest_package
 from vision_curator.packages.validate import validate_phase2_package
 from vision_curator.releases.build import build_release
+from vision_curator.releases.egohumans import ALL_RELEASE_FAMILIES, build_egohumans_release, build_split_assignments
+from vision_curator.releases.validate import validate_release
 from vision_curator.review.queues import build_review_queue
 from vision_curator.scoring.trust import score_package
 
@@ -42,6 +44,24 @@ def build_parser() -> argparse.ArgumentParser:
     release_parser.add_argument("--config", required=True)
     release_parser.add_argument("--release-id", required=True)
     release_parser.set_defaults(func=_build_release)
+
+    validate_release_parser = subparsers.add_parser("validate-release")
+    validate_release_parser.add_argument("--release-root", required=True)
+    validate_release_parser.set_defaults(func=_validate_release)
+
+    egohumans_splits_parser = subparsers.add_parser("build-egohumans-splits")
+    egohumans_splits_parser.add_argument("--store-root")
+    egohumans_splits_parser.add_argument("--output")
+    egohumans_splits_parser.add_argument("--chunk-size", type=int, default=100)
+    egohumans_splits_parser.set_defaults(func=_build_egohumans_splits)
+
+    egohumans_release_parser = subparsers.add_parser("build-egohumans-release")
+    egohumans_release_parser.add_argument("--release-family", required=True, choices=ALL_RELEASE_FAMILIES)
+    egohumans_release_parser.add_argument("--release-id", required=True)
+    egohumans_release_parser.add_argument("--store-root")
+    egohumans_release_parser.add_argument("--release-store")
+    egohumans_release_parser.add_argument("--split-assignments")
+    egohumans_release_parser.set_defaults(func=_build_egohumans_release)
 
     cvat_export_parser = subparsers.add_parser("export-cvat-task")
     cvat_export_parser.add_argument("--queue", required=True)
@@ -97,6 +117,36 @@ def _build_review_queue(args: argparse.Namespace) -> None:
 def _build_release(args: argparse.Namespace) -> None:
     release_root = build_release(args.config, args.release_id)
     print(json.dumps({"release_id": args.release_id, "release_root": str(release_root)}, sort_keys=True))
+
+
+def _validate_release(args: argparse.Namespace) -> None:
+    validate_release(args.release_root)
+    print(json.dumps({"release_root": str(args.release_root), "status": "ok"}, sort_keys=True))
+
+
+def _build_egohumans_splits(args: argparse.Namespace) -> None:
+    store_root = path_from_arg_or_env(args.store_root, "OPENCLAW_CURATOR_STORE")
+    output = build_split_assignments(store_root, args.output, args.chunk_size)
+    print(json.dumps({"output": str(output)}, sort_keys=True))
+
+
+def _build_egohumans_release(args: argparse.Namespace) -> None:
+    store_root = path_from_arg_or_env(args.store_root, "OPENCLAW_CURATOR_STORE")
+    release_store_root = path_from_arg_or_env(args.release_store, "OPENCLAW_DATASET_RELEASE_STORE")
+    release_store = release_store_root if release_store_root.name == "calibration" else release_store_root / "calibration"
+    result = build_egohumans_release(
+        args.release_family,
+        args.release_id,
+        store_root,
+        release_store,
+        args.split_assignments,
+    )
+    print(
+        json.dumps(
+            {"release_id": args.release_id, "release_root": str(result.release_root), "dataset_yaml": str(result.dataset_yaml)},
+            sort_keys=True,
+        )
+    )
 
 
 def _export_cvat_task(args: argparse.Namespace) -> None:

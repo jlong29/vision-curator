@@ -27,6 +27,7 @@
 
 ## Releases
 - `src/vision_curator/releases/build.py` builds immutable release directories.
+- `src/vision_curator/releases/egohumans.py` builds frozen EgoHumans split assignments and calibration release families with explicit oracle/gold/pseudo namespace policy.
 - `src/vision_curator/releases/validate.py` validates release shape.
 - `schemas/dataset_release.schema.json` documents the release manifest contract.
 

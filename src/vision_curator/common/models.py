@@ -89,8 +89,8 @@ class DatasetReleaseManifest:
     source_packages: list[dict[str, Any]]
     annotation_versions: list[str]
     annotation_status: str
-    split_policy: str
-    label_policy: str
+    split_policy: str | dict[str, Any]
+    label_policy: str | dict[str, Any]
     class_list: list[str]
     counts_by_split: dict[str, int]
     counts_by_label_source: dict[str, int]
